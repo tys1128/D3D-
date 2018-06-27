@@ -18,9 +18,9 @@
 // Globals
 //
 
-IDirect3DDevice9* Device = 0; 
+IDirect3DDevice9* Device = 0;
 
-const int Width  = 640;
+const int Width = 640;
 const int Height = 480;
 
 IDirect3DVertexBuffer9* VB = 0;
@@ -28,7 +28,7 @@ IDirect3DVertexBuffer9* VB = 0;
 
 
 ID3DXMesh* Teapot = 0;
-D3DXVECTOR3 TeapotPosition(0.0f, 0.0f, -7.0f);
+D3DXVECTOR3 TeapotPosition(0.0f, 0.0f, -5.0f);
 D3DMATERIAL9 TeapotMtrl = d3d::YELLOW_MTRL;
 
 //声明球体
@@ -45,14 +45,14 @@ void RenderMirrorAndTeapot();
 
 struct Vertex
 {
-	Vertex(){}
-	Vertex(float x, float y, float z, 
-		   float nx, float ny, float nz,
-		   float u, float v)
+	Vertex() {}
+	Vertex(float x, float y, float z,
+		float nx, float ny, float nz,
+		float u, float v)
 	{
-		_x  = x;  _y  = y;  _z  = z;
+		_x = x;  _y = y;  _z = z;
 		_nx = nx; _ny = ny; _nz = nz;
-		_u  = u;  _v  = v;
+		_u = u;  _v = v;
 	}
 	float _x, _y, _z;
 	float _nx, _ny, _nz;
@@ -79,16 +79,16 @@ bool Setup()
 
 	D3DXCreateSphere(
 		Device,
-		5, 64, 64,
+		2.5, 64, 64,
 		&sphere,
 		0);
 
-	D3DXCreateBox(
-		Device,
-		2,2,2,
-		&sphere,
-		0
-	);
+	//D3DXCreateBox(
+	//	Device,
+	//	2, 2, 2,
+	//	&sphere,
+	//	0
+	//);
 
 	//
 	// Set texture filters.
@@ -117,11 +117,11 @@ bool Setup()
 	//
 	D3DXMATRIX proj;
 	D3DXMatrixPerspectiveFovLH(
-			&proj,
-			D3DX_PI / 4.0f, // 45 - degree
-			(float)Width / (float)Height,
-			1.0f,
-			1000.0f);
+		&proj,
+		D3DX_PI / 4.0f, // 45 - degree
+		(float)Width / (float)Height,
+		1.0f,
+		1000.0f);
 	Device->SetTransform(D3DTS_PROJECTION, &proj);
 
 	return true;
@@ -143,7 +143,7 @@ void Cleanup()
 
 bool Display(float timeDelta)
 {
-	if( Device )
+	if (Device)
 	{
 		//
 		// Update the scene:
@@ -151,28 +151,28 @@ bool Display(float timeDelta)
 
 		static float radius = 17.0f;
 
-		if( ::GetAsyncKeyState(VK_LEFT) & 0x8000f )
+		if (::GetAsyncKeyState(VK_LEFT) & 0x8000f)
 			TeapotPosition.z -= 3.0f * timeDelta;
 
-		if( ::GetAsyncKeyState(VK_RIGHT) & 0x8000f )
+		if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f)
 			TeapotPosition.z += 3.0f * timeDelta;
 
-		if( ::GetAsyncKeyState(VK_UP) & 0x8000f )
+		if (::GetAsyncKeyState(VK_UP) & 0x8000f)
 			radius -= 4.0f * timeDelta;
 
-		if( ::GetAsyncKeyState(VK_DOWN) & 0x8000f )
+		if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)
 			radius += 4.0f * timeDelta;
 
 
 		static float angle = (3.0f * D3DX_PI) / 2.0f;
-	
-		if( ::GetAsyncKeyState('A') & 0x8000f )
+
+		if (::GetAsyncKeyState('A') & 0x8000f)
 			angle -= 0.5f * timeDelta;
 
-		if( ::GetAsyncKeyState('S') & 0x8000f )
+		if (::GetAsyncKeyState('S') & 0x8000f)
 			angle += 0.5f * timeDelta;
 
-		D3DXVECTOR3 position( cosf(angle) * radius, 1.0f, sinf(angle) * radius );
+		D3DXVECTOR3 position(cosf(angle) * radius, 1.0f, sinf(angle) * radius);
 		D3DXVECTOR3 target(0.0f, 0.0f, 0.0f);
 		D3DXVECTOR3 up(0.0f, 1.0f, 0.0f);
 		D3DXMATRIX V;
@@ -182,7 +182,7 @@ bool Display(float timeDelta)
 		//
 		// Draw the scene:
 		//
-		Device->Clear(0, 0, 
+		Device->Clear(0, 0,
 			D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL,
 			0xff000000, 1.0f, 0L);
 
@@ -190,7 +190,7 @@ bool Display(float timeDelta)
 
 		RenderScene();
 
-		RenderMirrorAndTeapot();	
+		RenderMirrorAndTeapot();
 
 		Device->EndScene();
 		Device->Present(0, 0, 0, 0);
@@ -210,7 +210,7 @@ void RenderScene()
 	Device->SetTexture(0, 0);
 
 	D3DXMatrixTranslation(&W,
-		TeapotPosition.x, 
+		TeapotPosition.x,
 		TeapotPosition.y,
 		TeapotPosition.z);
 	Device->SetTransform(D3DTS_WORLD, &W);
@@ -227,133 +227,89 @@ void RenderScene()
 	Device->SetTransform(D3DTS_WORLD, &W);
 	sphere->DrawSubset(0);
 
-}	
+}
 
 void RenderMirrorAndTeapot()
 {
 	//
-	//获取顶点和索引缓存
+	// Draw Mirror quad to stencil buffer ONLY.  In this way
+	// only the stencil bits that correspond to the mirror will
+	// be on.  Therefore, the reflected teapot can only be rendered
+	// where the stencil bits are turned on, and thus on the mirror 
+	// only.
 	//
-	IDirect3DVertexBuffer9* vb = 0;
-	sphere->GetVertexBuffer(&vb);
-	IDirect3DIndexBuffer9* ib = 0;
-	sphere->GetIndexBuffer(&ib);
 
-	//设置顶点数据流的数据源
-	Device->SetStreamSource(0, vb, 0, sizeof(Vertex));
-	Device->SetFVF(Vertex::FVF);
-	Device->SetIndices(ib);//设置索引缓存
+	Device->SetRenderState(D3DRS_STENCILENABLE, true);
+	Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
+	Device->SetRenderState(D3DRS_STENCILREF, 0x1);
+	Device->SetRenderState(D3DRS_STENCILMASK, 0xffffffff);
+	Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
+	Device->SetRenderState(D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
+	Device->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+	Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
 
-	//移动到球体位置
-	D3DXMATRIX sphT;
-	D3DXMatrixTranslation(&sphT,
-		spherePosition.x,
-		spherePosition.y,
-		spherePosition.z);
+	// disable writes to the depth and back buffers
+	Device->SetRenderState(D3DRS_ZWRITEENABLE, false);
+	Device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+	Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ZERO);
+	Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
 
-	for (size_t i = 0; i < sphere->GetNumFaces(); i++)
-	{
-		//
-		//获得每个面片反射矩阵
-		//
-
-		D3DXPLANE plane(0.0f, 0.0f, -1.0f, 0.0f); // xy plane
-		D3DXVECTOR3 a, b, c;//确定平面所在三个点
-		Vertex *v;
-		WORD *w;
-
-		ib->Lock(0, 0, (void**)&w, 0);
-		//代表每个面片在 vb 中的索引,
-		WORD i_0 = w[i * 3 + 0];
-		WORD i_1 = w[i * 3 + 1];
-		WORD i_2 = w[i * 3 + 2];
-		ib->Unlock();
-		//将每个面片的三个vertex的位置坐标写入a,b,c
-		vb->Lock(0, 0, (void**)&v, 0);
-		a.x = v[i_0]._x;
-		a.y = v[i_0]._y;
-		a.z = v[i_0]._z;
-		b.x = v[i_1]._x;
-		b.y = v[i_1]._y;
-		b.z = v[i_1]._z;
-		c.x = v[i_2]._x;
-		c.y = v[i_2]._y;
-		c.z = v[i_2]._z;
-		vb->Unlock();
-
-		//if (a.z>0||b.z>0||c.z>0)//面不朝茶壶
-		//{
-		//	continue;
-		//}
-		//D3DXPlaneFromPoints(&plane, &a, &b, &c);
-
-		// position reflection
-		D3DXMATRIX W, T, R;
-		D3DXMatrixReflect(&R, &plane);
-		D3DXMatrixTranslation(&T,
-			TeapotPosition.x,
-			TeapotPosition.y,
-			TeapotPosition.z);
-		W = T * R;
+	// draw the mirror to the stencil buffer
 
 
-		// Draw Mirror quad to stencil buffer ONLY.  In this way
-		// only the stencil bits that correspond to the mirror will
-		// be on.  Therefore, the reflected teapot can only be rendered
-		// where the stencil bits are turned on, and thus on the mirror 
-		// only.
-		//
-		Device->SetRenderState(D3DRS_STENCILENABLE,    true);
-		Device->SetRenderState(D3DRS_STENCILREF,       0x1);
-		Device->SetRenderState(D3DRS_STENCILMASK,      0xffffffff);
-		Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
-		Device->SetRenderState(D3DRS_STENCILFUNC,      D3DCMP_ALWAYS);
-		Device->SetRenderState(D3DRS_STENCILZFAIL,     D3DSTENCILOP_KEEP);
-		Device->SetRenderState(D3DRS_STENCILFAIL,      D3DSTENCILOP_KEEP);
-		Device->SetRenderState(D3DRS_STENCILPASS,      D3DSTENCILOP_REPLACE);
-
-		// disable writes to the depth and back buffers
-		Device->SetRenderState(D3DRS_ZWRITEENABLE, false);
-
-		Device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-		Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ZERO);
-		Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
-
-		// draw the mirror to the stencil buffer
-		//i为第i个面片
-		Device->SetTransform(D3DTS_WORLD, &sphT);
-
-		Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 3, i*3, 1);//--------------------------------------------------------
-		//sphere->DrawSubset(0);
-
-		// re-enable depth writes
-		Device->SetRenderState(D3DRS_ZWRITEENABLE, true);
+	D3DXMATRIX I;
+	D3DXMatrixIdentity(&I);
+	Device->SetTransform(D3DTS_WORLD, &I);
+	sphere->DrawSubset(0);
 
 
+	// re-enable depth writes
+	Device->SetRenderState(D3DRS_ZWRITEENABLE, true);
 
-		// only draw reflected teapot to the pixels where the mirror was drawn to.
-		Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);
-		Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
+	// only draw reflected teapot to the pixels where the mirror
+	// was drawn to.
+	Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);
+	Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
 
-		// clear depth buffer and blend the reflected teapot with the mirror
-		Device->Clear(0, 0, D3DCLEAR_ZBUFFER, 0, 1.0f, 0);
-		Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_DESTCOLOR);
-		Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+	// position reflection
+	D3DXMATRIX W, T, R, S;
 
-		// Finally, draw the reflected teapot
-		Device->SetTransform(D3DTS_WORLD, &W);
-		Device->SetMaterial(&TeapotMtrl);
-		Device->SetTexture(0, 0);
+	float k = 3*1.25/(-TeapotPosition.z);
+	D3DXPLANE plane(0.0f, 0.0f, 1.0f, 1.25f);
+	D3DXMatrixReflect(&R, &plane);
 
-		Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW);
-		Teapot->DrawSubset(0);
 
-		// Restore render states.
-		Device->SetRenderState(D3DRS_ALPHABLENDENABLE, false);
-		Device->SetRenderState(D3DRS_STENCILENABLE, false);
-		Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
+	D3DXMatrixTranslation(&T,
+		TeapotPosition.x,
+		TeapotPosition.y,
+		0.5*TeapotPosition.z);
 
-	}
+	D3DXMatrixScaling(&S,
+		k,
+		k,
+		k
+	);
+
+	W = T * S * R;
+
+
+	// clear depth buffer and blend the reflected teapot with the mirror
+	Device->Clear(0, 0, D3DCLEAR_ZBUFFER, 0, 1.0f, 0);
+	Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_DESTCOLOR);
+	Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+
+	// Finally, draw the reflected teapot
+	Device->SetTransform(D3DTS_WORLD, &W);
+	Device->SetMaterial(&TeapotMtrl);
+	Device->SetTexture(0, 0);
+
+	Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW);
+	Teapot->DrawSubset(0);
+
+	// Restore render states.
+	Device->SetRenderState(D3DRS_ALPHABLENDENABLE, false);
+	Device->SetRenderState(D3DRS_STENCILENABLE, false);
+	Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
 }
 
 //
@@ -361,14 +317,14 @@ void RenderMirrorAndTeapot()
 //
 LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	switch( msg )
+	switch (msg)
 	{
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		break;
-		
+
 	case WM_KEYDOWN:
-		if( wParam == VK_ESCAPE )
+		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
 
 		break;
@@ -380,24 +336,24 @@ LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 // WinMain
 //
 int WINAPI WinMain(HINSTANCE hinstance,
-				   HINSTANCE prevInstance, 
-				   PSTR cmdLine,
-				   int showCmd)
+	HINSTANCE prevInstance,
+	PSTR cmdLine,
+	int showCmd)
 {
-	if(!d3d::InitD3D(hinstance,
+	if (!d3d::InitD3D(hinstance,
 		Width, Height, true, D3DDEVTYPE_HAL, &Device))
 	{
 		::MessageBox(0, "InitD3D() - FAILED", 0, 0);
 		return 0;
 	}
-		
-	if(!Setup())
+
+	if (!Setup())
 	{
 		::MessageBox(0, "Setup() - FAILED", 0, 0);
 		return 0;
 	}
 
-	d3d::EnterMsgLoop( Display );
+	d3d::EnterMsgLoop(Display);
 
 	Cleanup();
 
