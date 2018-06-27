@@ -85,7 +85,7 @@ bool Setup()
 
 	D3DXCreateBox(
 		Device,
-		3, 3, 3,
+		2,2,2,
 		&sphere,
 		0
 	);
@@ -135,6 +135,7 @@ void Cleanup()
 	d3d::Release<IDirect3DTexture9*>(WallTex);
 	d3d::Release<IDirect3DTexture9*>(MirrorTex);
 	*/
+
 	d3d::Release<ID3DXMesh*>(Teapot);
 
 	d3d::Release<ID3DXMesh*>(sphere);
@@ -199,18 +200,21 @@ bool Display(float timeDelta)
 
 void RenderScene()
 {
+	//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+	//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+
 	D3DXMATRIX W;
 
-	//// draw teapot
-	//Device->SetMaterial(&TeapotMtrl);
-	//Device->SetTexture(0, 0);
+	// draw teapot
+	Device->SetMaterial(&TeapotMtrl);
+	Device->SetTexture(0, 0);
 
-	//D3DXMatrixTranslation(&W,
-	//	TeapotPosition.x, 
-	//	TeapotPosition.y,
-	//	TeapotPosition.z);
-	//Device->SetTransform(D3DTS_WORLD, &W);
-	//Teapot->DrawSubset(0);
+	D3DXMatrixTranslation(&W,
+		TeapotPosition.x, 
+		TeapotPosition.y,
+		TeapotPosition.z);
+	Device->SetTransform(D3DTS_WORLD, &W);
+	Teapot->DrawSubset(0);
 
 	//绘制球体
 	Device->SetMaterial(&sphereMtrl);
@@ -222,7 +226,7 @@ void RenderScene()
 		spherePosition.z);
 	Device->SetTransform(D3DTS_WORLD, &W);
 	sphere->DrawSubset(0);
-	
+
 }	
 
 void RenderMirrorAndTeapot()
@@ -253,19 +257,19 @@ void RenderMirrorAndTeapot()
 		//获得每个面片反射矩阵
 		//
 
-		///D3DXPLANE _plane(0.0f, 0.0f, 1.0f, 0.0f); // xy plane
-		D3DXPLANE plane;
+		D3DXPLANE plane(0.0f, 0.0f, -1.0f, 0.0f); // xy plane
 		D3DXVECTOR3 a, b, c;//确定平面所在三个点
 		Vertex *v;
 		WORD *w;
 
-		vb->Lock(0, 0, (void**)&v, 0);
 		ib->Lock(0, 0, (void**)&w, 0);
-		//代表每个面片的索引
+		//代表每个面片在 vb 中的索引,
 		WORD i_0 = w[i * 3 + 0];
 		WORD i_1 = w[i * 3 + 1];
 		WORD i_2 = w[i * 3 + 2];
-		//将三个vertex的信息写入a,b,c
+		ib->Unlock();
+		//将每个面片的三个vertex的位置坐标写入a,b,c
+		vb->Lock(0, 0, (void**)&v, 0);
 		a.x = v[i_0]._x;
 		a.y = v[i_0]._y;
 		a.z = v[i_0]._z;
@@ -276,13 +280,12 @@ void RenderMirrorAndTeapot()
 		c.y = v[i_2]._y;
 		c.z = v[i_2]._z;
 		vb->Unlock();
-		ib->Unlock();
 
-		if (a.z>0||b.z>0||c.z>0)//面不朝茶壶
-		{
-			continue;
-		}
-		D3DXPlaneFromPoints(&plane, &a, &b, &c);
+		//if (a.z>0||b.z>0||c.z>0)//面不朝茶壶
+		//{
+		//	continue;
+		//}
+		//D3DXPlaneFromPoints(&plane, &a, &b, &c);
 
 		// position reflection
 		D3DXMATRIX W, T, R;
@@ -318,13 +321,14 @@ void RenderMirrorAndTeapot()
 
 		// draw the mirror to the stencil buffer
 		//i为第i个面片
-		//Device->Clear(0, 0, D3DCLEAR_STENCIL, 0, 0, 0);
 		Device->SetTransform(D3DTS_WORLD, &sphT);
-		Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 3, i, 1);//------------------------------
+
+		Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 3, i*3, 1);//--------------------------------------------------------
+		//sphere->DrawSubset(0);
+
 		// re-enable depth writes
 		Device->SetRenderState(D3DRS_ZWRITEENABLE, true);
 
-		///sphere->DrawSubset(0);
 
 
 		// only draw reflected teapot to the pixels where the mirror was drawn to.
@@ -350,18 +354,6 @@ void RenderMirrorAndTeapot()
 		Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
 
 	}
-	// draw teapot
-	Device->SetMaterial(&TeapotMtrl);
-	Device->SetTexture(0, 0);
-	D3DXMATRIX W;
-
-	D3DXMatrixTranslation(&W,
-		TeapotPosition.x,
-		TeapotPosition.y,
-		TeapotPosition.z);
-	Device->SetTransform(D3DTS_WORLD, &W);
-	Teapot->DrawSubset(0);
-
 }
 
 //
