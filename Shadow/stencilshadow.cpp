@@ -326,31 +326,54 @@ void RenderShadow()
 		TeapotPosition.y,
 		TeapotPosition.z);
 
-
 	Device->SetRenderState(D3DRS_STENCILENABLE,    true);
-    Device->SetRenderState(D3DRS_STENCILFUNC,      D3DCMP_EQUAL);
-    Device->SetRenderState(D3DRS_STENCILREF,       0x0);
-    Device->SetRenderState(D3DRS_STENCILMASK,      0xffffffff);
-    Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
     Device->SetRenderState(D3DRS_STENCILZFAIL,     D3DSTENCILOP_KEEP);
     Device->SetRenderState(D3DRS_STENCILFAIL,      D3DSTENCILOP_KEEP);
-    Device->SetRenderState(D3DRS_STENCILPASS,      D3DSTENCILOP_INCR); // increment to 1
+
+	//绘制模板
+
+	// disable writes to the depth and back buffers
+	Device->SetRenderState(D3DRS_ZWRITEENABLE, false);
+	Device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+	Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ZERO);
+	Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+
+	//绘制墙面模板
+	Device->SetRenderState(D3DRS_STENCILMASK, 0x0000000f);//低4位分配给墙面模板
+	Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0x0000000f);
+	Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);//先将墙面标记出来
+	Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE); // 将墙面标记为0x1
+	Device->SetRenderState(D3DRS_STENCILREF, 0x1);
+
+	Device->DrawPrimitive(D3DPT_TRIANGLELIST, 6, 6);//绘制
+
+	//绘制地面模板
+	Device->SetRenderState(D3DRS_STENCILMASK, 0x000000f0);//低8-5位分配给地面模板
+	Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0x000000f0);
+	Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);//先将地面标记出来
+	Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE); // 将地面标记为0x10
+	Device->SetRenderState(D3DRS_STENCILREF, 0x10);
+
+	Device->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);//绘制
+
+	// re-enable depth writes
+	Device->SetRenderState(D3DRS_ZWRITEENABLE, true);
+
+
+
+	//绘制阴影
 
 	// alpha blend the shadow
 	Device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 	Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
 	Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-
 	// Disable depth buffer so that z-fighting doesn't occur when we
 	// render the shadow on top of the floor.
 	Device->SetRenderState(D3DRS_ZENABLE, false);
-
-
-	W = T * Sf;//绘制地面上的阴影
-	Device->SetTransform(D3DTS_WORLD, &W);
-	Device->SetMaterial(&mtrl);
-	Device->SetTexture(0, 0);
-	Teapot->DrawSubset(0);
+	//墙面阴影
+	Device->SetRenderState(D3DRS_STENCILREF, 0x1);
+	Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);//只绘制到墙面上
+	Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_ZERO); // 绘制过一次则置为0
 
 	W = T * Sw;//绘制墙面上的阴影
 	Device->SetTransform(D3DTS_WORLD, &W);
@@ -358,7 +381,19 @@ void RenderShadow()
 	Device->SetTexture(0, 0);
 	Teapot->DrawSubset(0);
 
+	//地面阴影
+	Device->SetRenderState(D3DRS_STENCILREF, 0x10);
+	Device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);//只绘制到地面上
+	Device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_ZERO); // 绘制一次后置为0
 
+	W = T * Sf;//绘制地面上的阴影
+	Device->SetTransform(D3DTS_WORLD, &W);
+	Device->SetMaterial(&mtrl);
+	Device->SetTexture(0, 0);
+	Teapot->DrawSubset(0);
+
+
+	//恢复
 	Device->SetRenderState(D3DRS_ZENABLE, true);
 	Device->SetRenderState(D3DRS_ALPHABLENDENABLE, false);
 	Device->SetRenderState(D3DRS_STENCILENABLE,    false);
