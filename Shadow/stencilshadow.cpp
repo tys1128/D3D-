@@ -299,23 +299,18 @@ void RenderScene()
 
 void RenderShadow()
 {
-	Device->SetRenderState(D3DRS_STENCILENABLE,    true);
-    Device->SetRenderState(D3DRS_STENCILFUNC,      D3DCMP_EQUAL);
-    Device->SetRenderState(D3DRS_STENCILREF,       0x0);
-    Device->SetRenderState(D3DRS_STENCILMASK,      0xffffffff);
-    Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
-    Device->SetRenderState(D3DRS_STENCILZFAIL,     D3DSTENCILOP_KEEP);
-    Device->SetRenderState(D3DRS_STENCILFAIL,      D3DSTENCILOP_KEEP);
-    Device->SetRenderState(D3DRS_STENCILPASS,      D3DSTENCILOP_INCR); // increment to 1
-
 	// position shadow
 	D3DXVECTOR4 lightDirection(0.707f, -0.5f, 0.707f, 0.0f);
 	D3DXPLANE groundPlane(0.0f, -1.0f, 0.0f, 0.0f);
 	D3DXPLANE wallPlane(0.0f, 0.0f, 1.0f, 0.0f);
 
-	D3DXMATRIX S;
+	D3DMATERIAL9 mtrl = d3d::InitMtrl(d3d::BLACK, d3d::BLACK, d3d::BLACK, d3d::BLACK, 0.0f);
+	mtrl.Diffuse.a = 0.5f; // 50% transparency.
+	D3DXMATRIX W;//世界矩阵
+
+	D3DXMATRIX Sf;
 	D3DXMatrixShadow(
-		&S,
+		&Sf,
 		&lightDirection,
 		&groundPlane);
 	D3DXMATRIX Sw;
@@ -331,21 +326,28 @@ void RenderShadow()
 		TeapotPosition.y,
 		TeapotPosition.z);
 
-	D3DXMATRIX W = T * S;
-	Device->SetTransform(D3DTS_WORLD, &W);
+
+	Device->SetRenderState(D3DRS_STENCILENABLE,    true);
+    Device->SetRenderState(D3DRS_STENCILFUNC,      D3DCMP_EQUAL);
+    Device->SetRenderState(D3DRS_STENCILREF,       0x0);
+    Device->SetRenderState(D3DRS_STENCILMASK,      0xffffffff);
+    Device->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
+    Device->SetRenderState(D3DRS_STENCILZFAIL,     D3DSTENCILOP_KEEP);
+    Device->SetRenderState(D3DRS_STENCILFAIL,      D3DSTENCILOP_KEEP);
+    Device->SetRenderState(D3DRS_STENCILPASS,      D3DSTENCILOP_INCR); // increment to 1
 
 	// alpha blend the shadow
 	Device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 	Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
 	Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
-	D3DMATERIAL9 mtrl = d3d::InitMtrl(d3d::BLACK, d3d::BLACK, d3d::BLACK, d3d::BLACK, 0.0f);
-	mtrl.Diffuse.a = 0.5f; // 50% transparency.
-
 	// Disable depth buffer so that z-fighting doesn't occur when we
 	// render the shadow on top of the floor.
 	Device->SetRenderState(D3DRS_ZENABLE, false);
 
+
+	W = T * Sf;//绘制地面上的阴影
+	Device->SetTransform(D3DTS_WORLD, &W);
 	Device->SetMaterial(&mtrl);
 	Device->SetTexture(0, 0);
 	Teapot->DrawSubset(0);
